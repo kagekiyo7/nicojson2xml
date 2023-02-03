@@ -42,12 +42,14 @@ def to_xml(json_info, path):
         if int(comment.get("isPremium", False)):
             chat_ele.set("premium", "1")
 
-        chat_ele.set("user_id", comment.get("userId"))
-
         commands = comment.get("commands", [])
         if "184" in str(commands):
             chat_ele.set("anonymity", "1")
-        chat_ele.set("mail", " ".join(commands))
+            
+        chat_ele.set("user_id", comment.get("userId"))
+            
+        if commands:
+            chat_ele.set("mail", " ".join(commands))
 
         chat_ele.text = comment.get("body", "")
     tree = ET.ElementTree(root_ele)
