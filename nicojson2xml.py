@@ -8,19 +8,21 @@ import pprint
 from datetime import datetime as dt
 import xml.etree.ElementTree as ET
 
-def parse_json(path):
+def parse_json(comment_json):
+    """ 変換に必要な情報だけコピーする
+    """
     json_info = {}
-    with open(path, "r", encoding="utf-8_sig") as f:
-        comment_json = json.load(f)
-        json_info["thread_id"] = comment_json["data"]["threads"][0]["id"]
-        json_info["comments"] = []
-        for thread in comment_json["data"]["threads"]:
-            if thread["comments"]:
-                json_info["comments"].extend(thread["comments"])
+    json_info["thread_id"] = comment_json["data"]["threads"][0]["id"]
+    json_info["comments"] = []
+    for thread in comment_json["data"]["threads"]:
+        if thread["comments"]:
+            json_info["comments"].extend(thread["comments"])
     return json_info
 
 
-def to_xml(json_info, path):
+def to_xml(json_info):
+    """ Element型を返す
+    """
     root_ele = ET.Element("packet")
     thread = json_info["thread_id"]
     for comment in json_info["comments"]:
@@ -54,14 +56,19 @@ def to_xml(json_info, path):
         chat_ele.text = comment.get("body", "")
     tree = ET.ElementTree(root_ele)
     ET.indent(tree, space="  ")
-    out_path = os.path.splitext(path)[0] + ".xml"
-    with open(out_path, "wb") as file:
-        tree.write(file, encoding="utf-8", xml_declaration=True)
+    return tree
 
 
 def main(path):
-    json_info = parse_json(path)
-    xml = to_xml(json_info, path)
+    #入力と変換
+    with open(path, "r", encoding="utf-8_sig") as file:
+        json_info = parse_json(json.load(file))
+    xml = to_xml(json_info)
+
+    #出力
+    out_path = os.path.splitext(path)[0] + ".xml"
+    with open(out_path, "wb") as file:
+        xml.write(file, encoding="utf-8", xml_declaration=True)
 
 
 if __name__ == "__main__":
