@@ -1,28 +1,26 @@
-#!/usr/bin/env Python3.11.1
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
 import sys
 import os
 import json
 import pprint
 from datetime import datetime as dt
 import xml.etree.ElementTree as ET
+import traceback
 
-def parse_json(comment_json):
-    """ 変換に必要な情報だけコピーする
-    """
+def parse_json(json_content):
     json_info = {}
-    json_info["thread_id"] = comment_json["data"]["threads"][0]["id"]
+    json_info["thread_id"] = json_content["data"]["threads"][0]["id"]
     json_info["comments"] = []
-    for thread in comment_json["data"]["threads"]:
+    
+    for thread in json_content["data"]["threads"]:
         if thread["comments"]:
             json_info["comments"].extend(thread["comments"])
+    
     return json_info
 
 
-def to_xml(json_info):
-    """ Element型を返す
-    """
+def to_xml(json_info, path):
     root_ele = ET.Element("packet")
     thread = json_info["thread_id"]
     for comment in json_info["comments"]:
@@ -56,22 +54,37 @@ def to_xml(json_info):
         chat_ele.text = comment.get("body", "")
     tree = ET.ElementTree(root_ele)
     ET.indent(tree, space="  ")
+
     return tree
 
 
 def main(path):
-    #入力と変換
-    with open(path, "r", encoding="utf-8_sig") as file:
-        json_info = parse_json(json.load(file))
-    xml = to_xml(json_info)
-
-    #出力
+    with open(path, "r", encoding="utf-8_sig") as f:
+        json_content = json.load(f)
+    
+    json_comment_dict = parse_json(json_content)
+    xml_tree = to_xml(json_comment_dict, path)
+    
     out_path = os.path.splitext(path)[0] + ".xml"
+
     with open(out_path, "wb") as file:
-        xml.write(file, encoding="utf-8", xml_declaration=True)
+        xml_tree.write(file, encoding="utf-8", xml_declaration=True)
 
 
 if __name__ == "__main__":
-    for path in sys.argv[1:]:
-        if path.lower().endswith(".json"):
-            main(path)
+    if len(sys.argv) > 1:
+        for path in sys.argv[1:]:
+            if path.lower().endswith(".json"):
+                try:
+                    main(path)
+                    print(f"Succcess: {path}")
+                except Exception as e:
+                    error_message = traceback.format_exc()
+                    print(f"Error: {error_message}")
+                    with open(path + "_error.txt", "w") as file:
+                        file.write(error_message)
+            else:
+                print("it doesn't have json extension.")
+    else:
+        print(f"Usage: python {sys.argv[0]} comment.json")
+        print(f"       (or drag and drop jsons)")
